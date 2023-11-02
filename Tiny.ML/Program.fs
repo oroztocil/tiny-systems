@@ -1,13 +1,22 @@
 ﻿open Tiny.ML
 open System
+open Tiny.ML.Interpreter
 
 
-let e1 = Binary("+", Constant(2), Binary("*", Constant(10), Constant(4)))
-let ctx1 = Map.empty
-let r1 = Interpreter.evaluate ctx1 e1
-Console.WriteLine(r1)
+// ----------------------------------------------------------------------------
+// Test cases
+// ----------------------------------------------------------------------------
 
-let e2= Binary("+", Constant(2), Binary("*", Variable("x"), Constant(4)))
-let ctx2 = Map.ofList ["x", NumValue(10)]
-let r2 = Interpreter.evaluate ctx2 e2
-Console.WriteLine(r1)
+// Basic arithmentic: (1*2) + (20*2)
+let eba1 =
+    Binary("+", Binary("*", Constant(1), Constant(2)), Binary("*", Constant(20), Constant(2)))
+
+evaluate Map.empty eba1 |> Console.WriteLine
+
+// Basic artihmetic with variables: x + (x*20)
+let eba2 = Binary("+", Variable("x"), Binary("*", Variable("x"), Constant(20)))
+
+let ctx1 = Map.ofList [ "x", ValNum 4 ]
+evaluate ctx1 eba2 |> Console.WriteLine
+let ctx2 = Map.ofList [ "x", ValNum 2 ]
+evaluate ctx2 eba2 |> Console.WriteLine
