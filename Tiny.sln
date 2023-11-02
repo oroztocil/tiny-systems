@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tiny.ML", "Tiny.ML\Tiny.ML.fsproj", "{02AAFE80-DE6E-4402-8B7D-687D6603607D}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tiny.Basic", "Tiny.Basic\Tiny.Basic.fsproj", "{5F2A07F8-801B-42EB-9AE3-356045A21586}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{02AAFE80-DE6E-4402-8B7D-687D6603607D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02AAFE80-DE6E-4402-8B7D-687D6603607D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02AAFE80-DE6E-4402-8B7D-687D6603607D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02AAFE80-DE6E-4402-8B7D-687D6603607D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F2A07F8-801B-42EB-9AE3-356045A21586}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F2A07F8-801B-42EB-9AE3-356045A21586}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F2A07F8-801B-42EB-9AE3-356045A21586}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F2A07F8-801B-42EB-9AE3-356045A21586}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
