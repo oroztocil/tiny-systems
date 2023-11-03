@@ -16,9 +16,9 @@ evaluate Map.empty eba1 |> WriteLine
 // Basic artihmetic with variables: x + (x*20)
 let eba2 = Binary("+", Variable("x"), Binary("*", Variable("x"), Constant(20)))
 
-let ctx1 = Map.ofList [ "x", ValNum 4 ]
+let ctx1 = Map.ofList [ "x", (lazy ValNum 4) ]
 evaluate ctx1 eba2 |> WriteLine
-let ctx2 = Map.ofList [ "x", ValNum 2 ]
+let ctx2 = Map.ofList [ "x", (lazy ValNum 2) ]
 evaluate ctx2 eba2 |> WriteLine
 
 // Arithmetic with unary operator: (1*2) + (-(-20 * 2))
@@ -121,3 +121,148 @@ try
     evaluate Map.empty ed3 |> WriteLine
 with
 | ex -> WriteLine(ex.Message)
+
+
+// Data types - creating a union value
+let ec1 = Case(true, Binary("*", Constant(21), Constant(2)))
+evaluate Map.empty ec1 |> WriteLine
+
+// Data types - working with union cases
+//   match Case1(21) with Case1(x) -> x*2 | Case2(x) -> x*100
+//   match Case2(21) with Case1(x) -> x*2 | Case2(x) -> x*100
+let ec2 =
+    Match(
+        Case(true, Constant(21)),
+        "x",
+        Binary("*", Variable("x"), Constant(2)),
+        Binary("*", Variable("x"), Constant(100))
+    )
+
+evaluate Map.empty ec2 |> WriteLine
+
+let ec3 =
+    Match(
+        Case(false, Constant(21)),
+        "x",
+        Binary("*", Variable("x"), Constant(2)),
+        Binary("*", Variable("x"), Constant(100))
+    )
+
+evaluate Map.empty ec3 |> WriteLine
+
+// Recursion and conditionals - implementing factorial!
+//   let rec factorial = fun x ->
+//     if x then 1 else x*(factorial (-1 + x))
+//   in factorial 5
+let er =
+    Recursive(
+        "factorial",
+        Lambda(
+            "x",
+            If(
+                Variable("x"),
+                Constant(1),
+                Binary("*", Variable("x"), Application(Variable("factorial"), Binary("+", Constant(-1), Variable("x"))))
+            )
+        ),
+        Application(Variable "factorial", Constant 6)
+    )
+
+evaluate Map.empty er |> WriteLine
+
+
+// Ultimate functional programming - lists and List.map!
+// We represent lists as cons cells using tuples, so [1,2,3]
+//
+// = Case(true, Tuple(Constant(1), Case(true, Tuple(Constant(2),
+//     Case(true, Tuple(Constant(3), Case(false, Unit) ))))))
+
+// Helper function to construct lists, so that we
+// do not need to write them by hand!
+let rec makeListExpr l =
+    match l with
+    | x :: xs -> Case(true, Tuple(x, makeListExpr xs))
+    | [] -> Case(false, Unit)
+
+let el = makeListExpr [ for i in 1..5 -> Constant i ]
+
+// List.map function in TinyML:
+//
+//   let rec map = (fun f -> fun l ->
+//     match l with
+//     | Case1 t -> Case1(f x#1, (map f) x#2)
+//     | Case2(Unit) -> Case2(Unit))
+//   in map (fun y -> y * 10) l
+//
+let em =
+    Recursive(
+        "map",
+        Lambda(
+            "f",
+            Lambda(
+                "l",
+                Match(
+                    Variable("l"),
+                    "x",
+                    Case(
+                        true,
+                        Tuple(
+                            Application(Variable "f", TupleGet(true, Variable "x")),
+                            Application(Application(Variable "map", Variable "f"), TupleGet(false, Variable "x"))
+                        )
+                    ),
+                    Case(false, Unit)
+                )
+            )
+        ),
+        Application(Application(Variable "map", Lambda("y", Binary("*", Variable "y", Constant 10))), el)
+    )
+
+evaluate Map.empty em |> WriteLine
+
+// TODO: Can you implement 'List.filter' in TinyML too??
+// The somewhat silly example removes 3 from the list.
+// Add '%' binary operator and you can remove odd/even numbers!
+//
+//   let rec filter = (fun f -> fun l ->
+//     match l with
+//     | Case1 t ->
+//          if f x#1 then Case1(x#1, (map f) x#2)
+//          else (map f) x#2
+//     | Case2(Unit) -> Case2(Unit))
+//   in map (fun y -> y + (-2)) l
+//
+
+// WIP
+
+// let ef =
+//     Recursive(
+//         "filter",
+//         Lambda(
+//             "f",
+//             Lambda(
+//                 "l",
+//                 Match(
+//                     Variable("l"),
+//                     "x",
+//                     Case(
+//                         true,
+//                         If(
+//                         // Cond
+//                         ,
+//                         // Then
+//                         Tuple(
+//                             TupleGet(true, Variable "x"),
+//                             Application(Application(Variable "map", Variable "f"), TupleGet(false, Variable "x"))
+//                         ),
+//                         // Else
+//                         Application(Application(Variable "map", Variable "f"), TupleGet(false, Variable "x")))
+//                     ),
+//                     Case(false, Unit)
+//                 )
+//             )
+//         ),
+//         Application(Application(Variable "filter", Lambda("y", Binary("+", Variable "y", Constant -2))), el)
+//     )
+
+// evaluate Map.empty ef  |> WriteLine
