@@ -5,31 +5,55 @@
 // NOTE: Start with some basic expressions from TinyML
 // This time, If requires a real Boolean argument and we have
 // operators '+' (int -> int -> int) and '=' (int -> int -> bool)
-type Expression = 
-  | Constant of int
-  | Binary of string * Expression * Expression
-  | If of Expression * Expression * Expression
-  | Variable of string
+type Expression =
+    | Constant of int
+    | Binary of string * Expression * Expression
+    | If of Expression * Expression * Expression
+    | Variable of string
 
-type Type = 
-  | TyVariable of string
-  | TyBool 
-  | TyNumber 
-  | TyList of Type
+type Type =
+    | TyVariable of string
+    | TyBool
+    | TyNumber
+    | TyList of Type
 
 // ----------------------------------------------------------------------------
 // Constraint solving
 // ----------------------------------------------------------------------------
 
-let rec occursCheck vcheck ty = 
-  failwith "implemented in step 2"
-let rec substType (subst:Map<_, _>) t1 = 
-  failwith "implemented in step 2"
-let substConstrs subst cs = 
-  failwith "implemented in step 2"
- 
-let rec solve constraints =
-  failwith "implemente in step 2"
+
+let rec occursCheck (vcheck: string) (ty: Type) =
+    match ty with
+    | TyVariable(v) -> v = vcheck
+    | TyList(listType) -> occursCheck vcheck listType
+    | _ -> false
+
+let rec substituteAll (subst: Map<string, Type>) ty =
+    match ty with
+    | TyVariable(varName) when subst.ContainsKey varName -> subst.[varName]
+    | TyList(listType) -> TyList(substituteAll subst listType)
+    | _ -> ty
+
+let substituteConstrs (subst: Map<string, Type>) (cs: list<Type * Type>) =
+    List.map (fun (l, r) -> (substituteAll subst l, substituteAll subst r)) cs
+
+
+let rec solve cs =
+    match cs with
+    | [] -> []
+    | (TyNumber, TyNumber) :: cs -> solve cs
+    | (TyBool, TyBool) :: cs -> solve cs
+    | (TyList(t1), TyList(t2)) :: cs -> solve ((t1, t2) :: cs)
+    | (t, TyVariable v) :: cs
+    | (TyVariable v, t) :: cs ->
+        if occursCheck v t then
+            failwith "Does not type check (occurs check)"
+
+        let cs = substituteConstrs (Map.ofList [ v, t ]) cs
+        let subst = solve cs
+        let t = substituteAll (Map.ofList subst) t
+        (v, t) :: subst
+    | _ -> failwith "Does not type check (unsatisfiable constraint)"
 
 // ----------------------------------------------------------------------------
 // Constraint generation & inference
@@ -39,36 +63,32 @@ let rec solve constraints =
 // (those will typically be TyVariable cases, but don't have to)
 type TypingContext = Map<string, Type>
 
-let rec generate (ctx:TypingContext) e = 
-  match e with 
-  | Constant _ -> 
-      // NOTE: If the expression is a constant number, we return
-      // its type (number) and generate no further constraints.
-      TyNumber, []
+let rec generate (ctx: TypingContext) e =
+    match e with
+    | Constant _ -> TyNumber, []
 
-  | Binary("+", e1, e2) ->
-      // NOTE: Recursively process sub-expressions, collect all the 
-      // constraints and ensure the types of 'e1' and 'e2' are 'TyNumber'
-      let t1, s1 = generate ctx e1
-      let t2, s2 = generate ctx e2
-      TyNumber, s1 @ s2 @ [ t1, TyNumber; t2, TyNumber ]
+    | Binary("+", e1, e2) ->
+        let t1, s1 = generate ctx e1
+        let t2, s2 = generate ctx e2
+        let cs = s1 @ s2 @ [ t1, TyNumber; t2, TyNumber ]
+        TyNumber, cs
 
-  | Binary("=", e1, e2) ->
-      // TODO: Similar to the case for '+' but returns 'TyBool'
-      failwith "not implemented"
+    | Binary("=", e1, e2) ->
+        let t1, s1 = generate ctx e1
+        let t2, s2 = generate ctx e2
+        let cs = s1 @ s2 @ [ t1, TyNumber; t2, TyNumber ]
+        TyBool, cs
 
-  | Binary(op, _, _) ->
-      failwithf "Binary operator '%s' not supported." op
+    | Binary(op, _, _) -> failwithf "Binary operator '%s' not supported." op
 
-  | Variable v -> 
-      // TODO: Just get the type of the variable from 'ctx' here.
-      failwith "not implemented"
+    | Variable v -> ctx.[v], []
 
-  | If(econd, etrue, efalse) ->
-      // TODO: Call generate recursively on all three sub-expressions,
-      // collect all constraints and add a constraint that (i) the type
-      // of 'econd' is 'TyBool' and (ii) types of 'etrue' and 'efalse' match.
-      failwith "not implemented"
+    | If(eCond, eThen, eElse) ->
+        let tCond, sCond = generate ctx eCond
+        let tThen, sThen = generate ctx eThen
+        let tElse, sElse = generate ctx eElse
+        let cs = sCond @ sThen @ sElse @ [ tCond, TyBool; tThen, tElse ]
+        TyNumber, cs
 
 
 // ----------------------------------------------------------------------------
@@ -78,36 +98,24 @@ let rec generate (ctx:TypingContext) e =
 
 // Simple expressions: x = 10 + x
 // Assuming x:'a, infers that 'a = int
-let e1 = 
-  Binary("=",   
-    Variable("x"), 
-    Binary("+", Constant(10), Variable("x")))
+let e1 = Binary("=", Variable("x"), Binary("+", Constant(10), Variable("x")))
 
-let t1, cs1 = 
-  generate (Map.ofList ["x", TyVariable "a"]) e1
+let t1, cs1 = generate (Map.ofList [ "x", TyVariable "a" ]) e1
 
 solve cs1
 
 // Simple expressions: if x then 2 + 1 else y
 // Assuming x:'a, y:'b, infers 'a = bool, 'b = int
-let e2 = 
-  If(Variable("x"), 
-    Binary("+", Constant(2), Constant(1)),
-    Variable("y"))
+let e2 = If(Variable("x"), Binary("+", Constant(2), Constant(1)), Variable("y"))
 
-let t2, cs2 = 
-  generate (Map.ofList ["x", TyVariable "a"; "y", TyVariable "b"]) e2
+let t2, cs2 = generate (Map.ofList [ "x", TyVariable "a"; "y", TyVariable "b" ]) e2
 
 solve cs2
 
 // Simple expressions: if x then 2 + 1 else x
 // Cannot be solved, because 'x' used as 'int' and 'bool'
-let e3 = 
-  If(Variable("x"), 
-    Binary("+", Constant(2), Constant(1)),
-    Variable("x"))
+let e3 = If(Variable("x"), Binary("+", Constant(2), Constant(1)), Variable("x"))
 
-let t3, cs3 = 
-  generate (Map.ofList ["x", TyVariable "a"; "y", TyVariable "b"]) e3
+let t3, cs3 = generate (Map.ofList [ "x", TyVariable "a"; "y", TyVariable "b" ]) e3
 
 solve cs3
