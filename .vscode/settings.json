@@ -1,5 +1,6 @@
 {
     "FSharp.inlayHints.parameterNames": false,
     "FSharp.inlayHints.enabled": false,
-    "editor.inlayHints.enabled": "offUnlessPressed"
+    "editor.inlayHints.enabled": "offUnlessPressed",
+    "cmake.configureOnOpen": false
 }
